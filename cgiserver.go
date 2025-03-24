@@ -376,6 +376,11 @@ func createSanitizedEnvironment(r *http.Request) ([]string, error) {
 	}
 
 	for name, value := range cgiVars {
+		// Check size limit
+		if len(value) > *maxEnvSize {
+			return nil, fmt.Errorf("environment variable %v exceeds maximum allowed size %v", name, *maxEnvSize)
+		}
+
 		var sanitized string
 		var err error
 		if name == "QUERY_STRING" {
@@ -413,11 +418,6 @@ func createSanitizedEnvironment(r *http.Request) ([]string, error) {
 // sanitizeEnv removes potentially dangerous characters from environment variables
 // and enforces size limits
 func sanitizeEnv(input string) (string, error) {
-	// Check size limit
-	if len(input) > *maxEnvSize {
-		return "", fmt.Errorf("environment variable exceeds maximum allowed size")
-	}
-
 	// Remove NULL bytes and other control characters
 	result := strings.Map(func(r rune) rune {
 		if r < 32 || r == 127 {
