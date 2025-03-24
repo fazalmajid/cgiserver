@@ -59,6 +59,7 @@ var allowedHeaders = map[string]bool{
 	"HOST":            true,
 	"REFERER":         true,
 	"USER_AGENT":      true,
+	"X_FORWARDED_FOR": true,
 }
 
 // Secure path pattern
@@ -356,6 +357,10 @@ func createSanitizedEnvironment(r *http.Request) ([]string, error) {
 	}
 
 	// Add basic CGI variables with sanitization
+	clientIp := r.Header.Get("X-Forwarded-For")
+	if clientIp == "" {
+		clientIp = r.RemoteAddr
+	}
 	cgiVars := map[string]string{
 		"SERVER_NAME":     r.Host,
 		"SERVER_PROTOCOL": r.Proto,
@@ -364,7 +369,7 @@ func createSanitizedEnvironment(r *http.Request) ([]string, error) {
 		"PATH_INFO":       r.URL.Path,
 		"SCRIPT_NAME":     "/cgi-bin/" + r.URL.Path,
 		"QUERY_STRING":    r.URL.RawQuery,
-		"REMOTE_ADDR":     r.RemoteAddr,
+		"REMOTE_ADDR":     clientIp,
 		"CONTENT_LENGTH":  r.Header.Get("Content-Length"),
 		"CONTENT_TYPE":    r.Header.Get("Content-Type"),
 	}
