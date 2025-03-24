@@ -368,7 +368,7 @@ func createSanitizedEnvironment(r *http.Request) ([]string, error) {
 		"SERVER_PORT":     r.URL.Port(),
 		"REQUEST_METHOD":  r.Method,
 		"PATH_INFO":       r.URL.Path,
-		"SCRIPT_NAME":     "/cgi-bin/" + r.URL.Path,
+		"SCRIPT_NAME":     *cgiPrefix + r.URL.Path,
 		"QUERY_STRING":    r.URL.RawQuery,
 		"REMOTE_ADDR":     clientIp,
 		"CONTENT_LENGTH":  r.Header.Get("Content-Length"),
@@ -376,7 +376,13 @@ func createSanitizedEnvironment(r *http.Request) ([]string, error) {
 	}
 
 	for name, value := range cgiVars {
-		sanitized, err := sanitizeEnv(value)
+		var sanitized string
+		var err error
+		if name == "QUERY_STRING" {
+			sanitized, err = value, nil
+		} else {
+			sanitized, err = sanitizeEnv(value)
+		}
 		if err != nil {
 			return nil, err
 		}
