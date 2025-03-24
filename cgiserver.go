@@ -43,7 +43,7 @@ var (
 	staticDir         = flag.String("static-dir", "./static", "Directory containing static files")
 	maxEnvSize        = flag.Int("max-env-size", 4096, "Maximum size for environment variables")
 	scriptTimeout     = flag.Duration("script-timeout", 30*time.Second, "Timeout for CGI script execution")
-	allowedExtensions = flag.String("allowed-extensions", ".cgi,.pl,.py,.rb,.php", "Comma-separated list of allowed script extensions")
+	allowedExtensions = flag.String("allowed-extensions", ".cgi", "Comma-separated list of allowed script extensions")
 )
 
 // Define a whitelist of allowed HTTP headers to pass to CGI scripts
@@ -169,25 +169,10 @@ func handleCGI(w http.ResponseWriter, r *http.Request) {
 // executeCGIWithTimeout runs a CGI script with a hard timeout
 func executeCGIWithTimeout(ctx context.Context, w http.ResponseWriter, r *http.Request, scriptPath string, env []string) error {
 	// Determine the interpreter based on file extension
-	executable := scriptPath
 	args := []string{}
 
-	ext := strings.ToLower(filepath.Ext(scriptPath))
-	switch ext {
-	case ".php":
-		executable = "php-cgi"
-		args = []string{scriptPath}
-	case ".pl", ".perl":
-		executable = "perl"
-		args = []string{scriptPath}
-	case ".py":
-		executable = "python"
-		args = []string{scriptPath}
-	case ".rb":
-		executable = "ruby"
-		args = []string{scriptPath}
-	}
-
+	// bypass exec.LookPath() and force using the executable in the cgi-bin dir
+	executable := "./" + filepath.Base(scriptPath)
 	// Create the command with the provided environment
 	cmd := exec.CommandContext(ctx, executable, args...)
 	cmd.Env = env
