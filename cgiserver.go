@@ -40,7 +40,7 @@ import (
 var (
 	port              = flag.Int("port", 8080, "Port to listen on")
 	cgiDir            = flag.String("cgi-dir", "./cgi-bin", "Directory containing CGI scripts")
-	staticDir         = flag.String("static-dir", "./static", "Directory containing static files")
+	cgiPrefix         = flag.String("cgi-prefix", "/cgi-bin/", "URL prefix for CGI scripts")
 	maxEnvSize        = flag.Int("max-env-size", 4096, "Maximum size for environment variables")
 	scriptTimeout     = flag.Duration("script-timeout", 30*time.Second, "Timeout for CGI script execution")
 	allowedExtensions = flag.String("allowed-extensions", ".cgi", "Comma-separated list of allowed script extensions")
@@ -68,20 +68,16 @@ func main() {
 	flag.Parse()
 
 	// Create CGI handler
-	cgiHandler := http.StripPrefix("/cgi-bin/", http.HandlerFunc(handleCGI))
-
-	// Create file server for static files
-	fileServer := http.FileServer(http.Dir(*staticDir))
+	cgiHandler := http.StripPrefix(*cgiPrefix, http.HandlerFunc(handleCGI))
 
 	// Setup routing
-	http.Handle("/cgi-bin/", cgiHandler)
-	http.Handle("/", fileServer)
+	http.Handle(*cgiPrefix, cgiHandler)
 
 	// Start server
 	addr := fmt.Sprintf(":%d", *port)
 	log.Printf("Starting secure CGI server on http://localhost%s", addr)
 	log.Printf("CGI scripts directory: %s", *cgiDir)
-	log.Printf("Static files directory: %s", *staticDir)
+	log.Printf("CGI URL prefix: %s", *cgiPrefix)
 	log.Printf("Script timeout: %s", *scriptTimeout)
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
