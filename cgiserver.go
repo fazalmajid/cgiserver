@@ -30,8 +30,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -62,9 +62,6 @@ var allowedHeaders = map[string]bool{
 	"USER_AGENT":      true,
 	"X_FORWARDED_FOR": true,
 }
-
-// Secure path pattern
-var safePathPattern = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]+$`)
 
 func main() {
 	flag.Parse()
@@ -317,23 +314,10 @@ func parseCGIResponse(stdout io.Reader, w http.ResponseWriter) error {
 }
 
 // isPathSafe checks if a path is safe (no directory traversal)
-func isPathSafe(path string) bool {
-	// Check for directory traversal attempts
-	if strings.Contains(path, "..") {
-		return false
-	}
-
-	// Check each path component against safe pattern
-	for _, part := range strings.Split(path, "/") {
-		if part == "" {
-			continue // Skip empty parts
-		}
-		if !safePathPattern.MatchString(part) {
-			return false
-		}
-	}
-
-	return true
+func isPathSafe(p string) bool {
+	// see: https://dzx.cz/2021-04-02/go_path_traversal/
+	clean := path.Join("/", p)
+	return "/"+p == clean
 }
 
 // hasAllowedExtension checks if file has a permitted extension
